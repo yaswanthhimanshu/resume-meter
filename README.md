@@ -19,7 +19,7 @@ SkillSync is an AI-powered resume matching web application that helps recruiters
 - **Frontend:** Streamlit (Custom CSS UI)
 - **Backend:** Python (Flask for DB + Streamlit for UI)
 - **ML Model:** SentenceTransformer (`all-MiniLM-L6-v2`)
-- **Database:** SQLite
+- **Database:** MySQL (via MySQL Workbench)
 - **Libraries:** `PyPDF2`, `pdfplumber`, `docx`, `nltk`, `numpy`, `pandas`
 
 ---
