@@ -10,9 +10,10 @@ import pandas as pd
 import json
 import streamlit.components.v1 as components
 from db import init_db, insert_resume, fetch_resumes
-
 import os
 import nltk
+nltk.download('punkt')
+nltk.download('punkt_tab')
 
 # If Aiven certificate is stored in Streamlit secrets, recreate it at runtime
 pem_content = os.getenv("DB_SSL_CERT_PEM")
