@@ -1,13 +1,33 @@
-﻿__pycache__/
+# ResumeMeter Project Git Ignore
+
+# Python cache and compiled files
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Virtual environments
 env/
 venv/
 .venv/
 .Python
+
+# Environment variables
 .env
+.env.*
+
+# IDE and editor settings
 .vscode/
+.idea/
+
+# Streamlit cache
 .streamlit/
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# OS files
 .DS_Store
 Thumbs.db
