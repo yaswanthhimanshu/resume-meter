@@ -7,20 +7,31 @@ import nltk
 from nltk.tokenize import sent_tokenize
 import numpy as np
 import pandas as pd
-
+import json
+import streamlit.components.v1 as components
 from db import init_db, insert_resume, fetch_resumes
 
 # ---------- Init ----------
-init_db()
-nltk.download('punkt')
+# ensure punkt is available
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+
+# initialize DB safely (don't crash UI if DB isn't configured)
+try:
+    init_db()
+except Exception as e:
+    # show non-blocking warning
+    st.warning("Database init failed; continuing without persistent DB. Error: " + str(e))
 
 st.set_page_config(
-    page_title="SkillSync — AI / Data-Driven Resume Matching",
+    page_title="ResumeMeter — AI and Data-Driven Resume Scoring and Shortlisting",
     layout="wide",
-    initial_sidebar_state="collapsed"   # we will NOT use the native sidebar anymore
+    initial_sidebar_state="collapsed"
 )
 
-# ---------- Session state for drawer ----------
+# ---------- Session state ----------
 if "show_settings" not in st.session_state:
     st.session_state.show_settings = False
 if "model_name" not in st.session_state:
@@ -130,8 +141,73 @@ textarea{
 /* Footer */
 .footer{border-top:1px solid #E7ECEA; padding:18px 0; background:#fff; margin-top:24px;}
 .footer-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+
+/* === Narrow rule: hide only the exact helper span you provided ===
+   This selector came directly from your browser's 'Copy selector'.
+   It hides only that single span element (the "Limit 200MB" helper),
+   leaving all other UI intact.
+*/
+#root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.stMainBlockContainer.block-container.st-emotion-cache-zy6yx3.e4man114 > div > div:nth-child(6) > div > div > div > div.stColumn.st-emotion-cache-yqzq1d.e196pkbe1 > div > div > div > div > section > div > div > span.st-emotion-cache-1sct1q3.e16n7gab4 {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
+selector = "#root > div:nth-child(1) > div.withScreencast > div > div > div > section > div.stMainBlockContainer.block-container.st-emotion-cache-zy6yx3.e4man114 > div > div:nth-child(6) > div > div > div > div.stColumn.st-emotion-cache-yqzq1d.e196pkbe1 > div > div > div > div > section > div > div > span.st-emotion-cache-1sct1q3.e16n7gab4"
+
+# Build JS safely by concatenating a single literal Python string with the JSON-encoded selector.
+js = (
+    "<script>(function(){"
+    "const sel = " + json.dumps(selector) + ";"
+    "const desiredText = 'Limit 5 MB per file • PDF, DOCX, TXT';"
+
+    # Try to hide exact selector (handles Streamlit re-renders)
+    "function hideSelector(){"
+      "try{"
+        "const el = document.querySelector(sel);"
+        "if(el){ el.style.display = 'none'; return true; }"
+      "}catch(e){}"
+      "return false;"
+    "}"
+
+    # Fallback: replace text nodes containing 200MB -> 5 MB (safe: modifies text nodes only)
+    "function replaceTextNodes(root){"
+      "const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);"
+      "let node;"
+      "const nodes = [];"
+      "while(node = walker.nextNode()){ nodes.push(node); }"
+      "for(const n of nodes){"
+        "const t = n.nodeValue;"
+        "if(!t || !t.trim()) continue;"
+        "if(/\\b200\\s?MB\\b/i.test(t) || /Limit\\s*200\\s?MB/i.test(t)){"
+          "let newTxt = t.replace(/\\b200\\s?MB\\b/ig, '5 MB');"
+          "newTxt = newTxt.replace(/Limit\\s*5\\s?MB/ig, 'Limit 5 MB');"
+          "if(/Limit\\s*5\\s?MB/i.test(newTxt) && !/per file/i.test(newTxt)){"
+            "newTxt = newTxt + ' per file • PDF, DOCX, TXT';"
+          "}"
+          "try{ n.nodeValue = newTxt; }catch(e){}"
+        "}"
+      "}"
+    "}"
+
+    # initial attempts
+    "hideSelector();"
+    "setTimeout(hideSelector, 150);"
+    "setTimeout(hideSelector, 600);"
+    "replaceTextNodes(document.body);"
+    "setTimeout(()=>replaceTextNodes(document.body), 200);"
+    "setTimeout(()=>replaceTextNodes(document.body), 800);"
+
+    # Observe DOM and reapply on changes
+    "const ob = new MutationObserver(()=>{ hideSelector(); replaceTextNodes(document.body); });"
+    "ob.observe(document.body, { childList:true, subtree:true });"
+
+    "})();</script>"
+)
+
+components.html(js, height=0, scrolling=False)
+
+
 
 # ---------- Header ----------
 with st.container():
@@ -142,8 +218,8 @@ with st.container():
             st.markdown(
                 '<div class="topbar"><div class="row">'
                 '<div style="display:flex; align-items:center; gap:14px;">'
-                '<div class="logo-pill logo-lg">SS</div>'
-                '<div class="brand brand-lg">SkillSync</div>'
+                '<div class="logo-pill logo-lg">RM</div>'
+                '<div class="brand brand-lg">ResumeMeter</div>'
                 '</div></div></div>',
                 unsafe_allow_html=True
             )
@@ -160,8 +236,8 @@ with st.container():
         st.markdown(
             """
             <section class="hero">
-              <h1><span>AI &amp; Data-Driven</span><br/><span class="line2">Resume Matching</span></h1>
-              <p class="sub">Find the right candidates faster with AI-driven semantic matching.</p>
+              <h1><span>AI &amp; Data-Driven</span><br/><span class="line2">Resume Scoring</span></h1>
+              <p class="sub">Measure and shortlist candidates with AI-powered scoring and explainable insights.</p>
             </section>
             """,
             unsafe_allow_html=True
@@ -208,13 +284,36 @@ model = load_model(st.session_state.model_name)
 with st.container():
     col = st.columns([1, 8, 1])[1]
     with col:
+        uploader_label = "Upload Your Resume (Limit 5 MB per file • PDF, DOCX, TXT)"
         uploaded_files = st.file_uploader(
-            "Upload Your Resume",
+            uploader_label,
             type=["pdf", "docx", "txt"],
             accept_multiple_files=True,
             key="uploader_dup",
-            label_visibility="collapsed"
+            label_visibility="visible"
         )
+
+        # ---- File size limit (5 MB per file) ----
+        MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
+        valid_files = []
+        for f in uploaded_files or []:
+            try:
+                size = f.size
+            except Exception:
+                try:
+                    f.seek(0, io.SEEK_END)
+                    size = f.tell()
+                    f.seek(0)
+                except Exception:
+                    size = None
+            if size is None:
+                valid_files.append(f)
+            else:
+                if size > MAX_FILE_SIZE:
+                    st.warning(f"⚠️ {f.name} is too large ({size/1024/1024:.2f} MB). Max allowed: 5 MB.")
+                else:
+                    valid_files.append(f)
+        uploaded_files = valid_files
 
 # ---------- JD ----------
 with st.container():
@@ -325,14 +424,17 @@ if analyze:
         for i, r in enumerate(shortlisted, start=1):
             unique_id = str(uuid.uuid4())[:8]
             unique_name = f"{i}_{unique_id}_{r['name']}"
-            insert_resume(
-                unique_name,
-                r["name"],
-                r["score"],
-                r["best_sentence_score"],
-                r["top_matches"],
-                "\n".join(r["resume_sentences"])
-            )
+            try:
+                insert_resume(
+                    unique_name,
+                    r['name'],
+                    r['score'],
+                    r['best_sentence_score'],
+                    r['top_matches'],
+                    "\n".join(r['resume_sentences'])
+                )
+            except Exception as e:
+                st.warning(f"Failed to save to DB: {e}")
 
         col1, col2 = st.columns([1, 1.2])
         with col1:
@@ -389,8 +491,8 @@ with st.container():
     with col:
         st.markdown(
             """
-            <section class="card" id="how-to-use-skillsync">
-              <h3>How to Use SkillSync</h3>
+            <section class="card" id="how-to-use-resumemeter">
+              <h3>How to Use ResumeMeter</h3>
               <ol style="text-align:left; line-height:1.6; font-size:16px; color:#444;">
                 <li><b>Upload Resume(s):</b> Drag and drop or browse to upload one or more resumes (PDF, DOCX, TXT).</li>
                 <li><b>Paste Job Description:</b> Enter the JD of the role you’re hiring for.</li>
@@ -425,10 +527,10 @@ with st.container():
             <footer class="footer">
               <div class="footer-row">
                 <div style="display:flex;align-items:center;gap:10px">
-                  <div class="logo-pill" style="width:30px;height:30px;border-radius:8px;font-size:12px">SS</div>
-                  <div class="brand">SkillSync</div>
+                  <div class="logo-pill" style="width:30px;height:30px;border-radius:8px;font-size:12px">RM</div>
+                  <div class="brand">ResumeMeter</div>
                 </div>
-                <div style="color:#667479; font-size:14px;">© 2025 SkillSync. Developed by Yaswanth Himanshu</div>
+                <div style="color:#667479; font-size:14px;">© 2025 ResumeMeter. Developed by Yaswanth Himanshu</div>
               </div>
             </footer>
             """,
