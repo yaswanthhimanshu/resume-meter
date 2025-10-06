@@ -1,30 +1,28 @@
-# SkillSync — AI / Data-Driven Resume Matching
+# 💼 ResumeMeter  
+### *AI-Powered Resume Scoring & Shortlisting*  
 
-### Developed by: **Yaswanth Himanshu**
+**Developed by:** *Yaswanth Himanshu*  
 
-SkillSync is an AI-powered resume matching web application that helps recruiters find the best candidates efficiently using semantic similarity.
-
----
-
-### 🚀 Features
-- Resume parsing (PDF, DOCX, TXT)
-- AI-based semantic similarity scoring using Sentence Transformers
-- Shortlisting based on threshold score
-- Streamlit UI with custom design
-- SQLite database integration for resume storage
+ResumeMeter is an intelligent web app that automatically **analyzes, ranks, and shortlists resumes** against job descriptions using AI-driven semantic similarity.
 
 ---
 
-### 🧠 Tech Stack
-- **Frontend:** Streamlit (Custom CSS UI)
-- **Backend:** Python (Flask for DB + Streamlit for UI)
-- **ML Model:** SentenceTransformer (`all-MiniLM-L6-v2`)
-- **Database:** MySQL (via MySQL Workbench)
-- **Libraries:** `PyPDF2`, `pdfplumber`, `docx`, `nltk`, `numpy`, `pandas`
+### 🚀 Highlights  
+- 📄 Upload resumes (PDF, DOCX, TXT)  
+- 🧠 AI model understands meaning beyond keywords  
+- 🎯 Smart shortlisting with adjustable score threshold  
+- 💬 Shows top-matching lines for transparency  
+- 💾 Stores shortlisted candidates in MySQL  
+- ⚙️ Clean, modern Streamlit interface  
 
 ---
 
-### 📦 Setup & Run
+### 🧠 Built With  
+**Python**, **Streamlit**, **Sentence Transformers**, **MySQL**, **NLTK**, **PyPDF2**, **pdfplumber**, **pandas**, **numpy**
+
+---
+
+### ▶️ Run Locally  
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
