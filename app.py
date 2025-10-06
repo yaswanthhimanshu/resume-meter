@@ -11,6 +11,22 @@ import json
 import streamlit.components.v1 as components
 from db import init_db, insert_resume, fetch_resumes
 
+import os
+import nltk
+
+# If Aiven certificate is stored in Streamlit secrets, recreate it at runtime
+pem_content = os.getenv("DB_SSL_CERT_PEM")
+if pem_content:
+    with open("aiven-ca.pem", "w", encoding="utf-8") as f:
+        f.write(pem_content)
+
+# Ensure NLTK punkt tokenizer data is available
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt", quiet=True)
+
+
 # ---------- Init ----------
 # ensure punkt is available
 try:
