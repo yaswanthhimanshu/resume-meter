@@ -1,28 +1,31 @@
 # 💼 ResumeMeter  
-### *AI-Powered Resume Scoring & Shortlisting*  
+**AI and Data-Driven Resume Scoring and Shortlisting**  
+Developed by **Yaswanth Himanshu**
 
-**Developed by:** *Yaswanth Himanshu*  
-
-ResumeMeter is an intelligent web app that automatically **analyzes, ranks, and shortlists resumes** against job descriptions using AI-driven semantic similarity.
-
----
-
-### 🚀 Highlights  
-- 📄 Upload resumes (PDF, DOCX, TXT)  
-- 🧠 AI model understands meaning beyond keywords  
-- 🎯 Smart shortlisting with adjustable score threshold  
-- 💬 Shows top-matching lines for transparency  
-- 💾 Stores shortlisted candidates in MySQL  
-- ⚙️ Clean, modern Streamlit interface  
+ResumeMeter is an AI-powered web app that evaluates and ranks resumes against job descriptions using semantic similarity.  
+It helps recruiters quickly identify the most relevant candidates.
 
 ---
 
-### 🧠 Built With  
-**Python**, **Streamlit**, **Sentence Transformers**, **MySQL**, **NLTK**, **PyPDF2**, **pdfplumber**, **pandas**, **numpy**
+## 🚀 Features
+- Upload resumes (PDF, DOCX, TXT)
+- Extract skills and key sections
+- Compute semantic similarity between resume and job description
+- Automatically shortlist top candidates
+- Connected to **Aiven Cloud MySQL** for secure data storage
 
 ---
 
-### ▶️ Run Locally  
+## 🧠 Tech Stack
+- **Frontend:** Streamlit  
+- **Backend:** Python  
+- **ML Model:** SentenceTransformer (`all-MiniLM-L6-v2`)  
+- **Database:** MySQL (Aiven Cloud)  
+- **Libraries:** Pandas, NumPy, scikit-learn, nltk, sentence-transformers
+
+---
+
+## ⚙️ Run Locally
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
