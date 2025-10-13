@@ -11,23 +11,22 @@ import json
 import streamlit.components.v1 as components
 from db import init_db, insert_resume, fetch_resumes
 
-import re
-def sentence_split(text):
-    """
-    Prefer NLTK sent_tokenize, but if punkt isn't available (or raises LookupError),
-    fall back to a simple regex splitter. Returns sentences with length > 10 chars.
-    """
-    if not isinstance(text, str) or not text.strip():
-        return []
+# ---------- Init ----------
+# ✅ Robust NLTK punkt setup (local nltk_data + download fallback)
+HERE = os.path.dirname(__file__)
+NLTK_DATA_DIR = os.path.join(HERE, "nltk_data")
+os.makedirs(NLTK_DATA_DIR, exist_ok=True)
+if NLTK_DATA_DIR not in nltk.data.path:
+    nltk.data.path.insert(0, NLTK_DATA_DIR)
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
     try:
-        sents = sent_tokenize(text)
-    except LookupError:
-        # fallback: split after . ! ? followed by whitespace. Keeps punctuation.
-        parts = re.split(r'(?<=[.!?])\s+', text.strip())
-        sents = [p for p in parts if p]
-    # keep only reasonably-sized sentences (avoids tiny fragments)
-    return [s.strip() for s in sents if len(s.strip()) > 10]
-
+        st.info("Downloading NLTK punkt tokenizer (first run).")
+        nltk.download("punkt", download_dir=NLTK_DATA_DIR, quiet=True)
+    except Exception as e:
+        st.warning(f"Could not download NLTK punkt. Using regex fallback for sentence splitting. ({e})")
+# ---------- End punkt setup ----------
 
 # initialize DB safely (don't crash UI if DB isn't configured)
 try:
@@ -391,8 +390,20 @@ def parse_resume(uploaded_file):
         st.warning(f"Unsupported format: {name}")
     return name, text.strip()
 
+# ---------- sentence_split (robust fallback) ----------
+import re
 def sentence_split(text):
-    sents = sent_tokenize(text)
+    """
+    Prefer NLTK sent_tokenize, but fall back to a regex-based splitter if punkt is missing.
+    Returns a list of non-empty sentence strings with length > 10.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return []
+    try:
+        sents = sent_tokenize(text)
+    except LookupError:
+        parts = re.split(r'(?<=[.!?])\s+', text.strip())
+        sents = [p for p in parts if p]
     return [s.strip() for s in sents if len(s.strip()) > 10]
 
 def compute_resume_score(jd_embedding, resume_text, model):
