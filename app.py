@@ -10,30 +10,24 @@ import pandas as pd
 import json
 import streamlit.components.v1 as components
 from db import init_db, insert_resume, fetch_resumes
-import os
-import nltk
-nltk.download('punkt')
-nltk.download('punkt_tab')
 
-# If Aiven certificate is stored in Streamlit secrets, recreate it at runtime
-pem_content = os.getenv("DB_SSL_CERT_PEM")
-if pem_content:
-    with open("aiven-ca.pem", "w", encoding="utf-8") as f:
-        f.write(pem_content)
+import re
+def sentence_split(text):
+    """
+    Prefer NLTK sent_tokenize, but if punkt isn't available (or raises LookupError),
+    fall back to a simple regex splitter. Returns sentences with length > 10 chars.
+    """
+    if not isinstance(text, str) or not text.strip():
+        return []
+    try:
+        sents = sent_tokenize(text)
+    except LookupError:
+        # fallback: split after . ! ? followed by whitespace. Keeps punctuation.
+        parts = re.split(r'(?<=[.!?])\s+', text.strip())
+        sents = [p for p in parts if p]
+    # keep only reasonably-sized sentences (avoids tiny fragments)
+    return [s.strip() for s in sents if len(s.strip()) > 10]
 
-# Ensure NLTK punkt tokenizer data is available
-try:
-    nltk.data.find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt", quiet=True)
-
-
-# ---------- Init ----------
-# ensure punkt is available
-try:
-    nltk.data.find("tokenizers/punkt")
-except LookupError:
-    nltk.download("punkt")
 
 # initialize DB safely (don't crash UI if DB isn't configured)
 try:
@@ -66,8 +60,9 @@ div[data-testid="stDecoration"]{ display:none !important; }
 header[data-testid="stHeader"]{ display:none !important; }
 div[data-testid="stToolbar"]{ display:none !important; }
 
-/* Force light theme */
-html, body, .stApp { background:#FFFFFF !important; color:#111111 !important; }
+/* NOTE: removed the forced light-theme rule so Streamlit's theme toggle (Light/Dark/System)
+   can work correctly. Do NOT set `base = "light"` in .streamlit/config.toml if you want users
+   to be able to switch themes. */
 
 /* Content spacing (we control our own topbar) */
 .block-container{ padding-top:0 !important; }
@@ -148,7 +143,7 @@ textarea{
 .drawer{
   position: fixed; top:80px; right:18px; z-index: 1100;
   width: 320px; max-width: 90vw;
-  background: #FFFFFF; border:1px solid #E7ECEA; border-radius:16px;
+  background: #WHITE; border:1px solid #E7ECEA; border-radius:16px;
   box-shadow:0 16px 40px rgba(17,24,39,.18);
   padding:18px;
 }
@@ -194,8 +189,7 @@ js = (
       "const nodes = [];"
       "while(node = walker.nextNode()){ nodes.push(node); }"
       "for(const n of nodes){"
-        "const t = n.nodeValue;"
-        "if(!t || !t.trim()) continue;"
+        "const t = n.nodeValue; if(!t || !t.trim()) continue;"
         "if(/\\b200\\s?MB\\b/i.test(t) || /Limit\\s*200\\s?MB/i.test(t)){"
           "let newTxt = t.replace(/\\b200\\s?MB\\b/ig, '5 MB');"
           "newTxt = newTxt.replace(/Limit\\s*5\\s?MB/ig, 'Limit 5 MB');"
